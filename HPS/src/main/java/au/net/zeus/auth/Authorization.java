@@ -37,9 +37,11 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.security.auth.Subject;
 import org.apache.river.api.net.Uri;
 import org.apache.river.concurrent.RC;
@@ -51,11 +53,18 @@ import org.apache.river.concurrent.Ref;
  * implementations.  Provides static utility methods to make privilgedCall's
  * and record the current context.
  * 
+ * Any methods belonging to Classes loaded by the bootstrap, or Platform 
+ * ClassLoader's are considered privileged calls. Guard implementations
+ * determine privileges.  Any other method call is considered unprivileged
+ * unless preceded by a privilegedCall method.
+ * 
  * @author peter
  */
 public final class Authorization {
     
     private static final ProtectionDomain MY_DOMAIN = Authorization.class.getProtectionDomain();
+    
+    private static final ClassLoader PLATFORM_LOADER = ClassLoader.getPlatformClassLoader();
     
     private static final Authorization PRIVILEGED = 
             new Authorization(new ProtectionDomain []{ MY_DOMAIN });
@@ -333,10 +342,12 @@ public final class Authorization {
      */
     public void checkEach(Consumer<ProtectionDomain> consumer) throws AuthorizationException {
         Authorization authorization = INHERITED_CONTEXT.get();
-        if (UNPRIVILEGED.equals(authorization)) throw new AuthorizationException("A privilegedCall is required to enable privileges.");
         if (PRIVILEGED.equals(authorization)) return; // Avoids circular checks.
         try {
             INHERITED_CONTEXT.set(PRIVILEGED);
+            if (UNPRIVILEGED.equals(authorization) && !onlyJavaPlatform()){
+                throw new AuthorizationException("A privilegedCall is required to enable privileges.");
+            }
             Set<Option> options = new HashSet<>();
             options.add(Option.RETAIN_CLASS_REFERENCE);
             StackWalker walker = StackWalker.getInstance(options);
@@ -355,6 +366,19 @@ public final class Authorization {
         }
         // The actual check for privileged code.
         context.stream().forEach(consumer);
+    }
+    
+    private Boolean onlyJavaPlatform(){
+        Set<Option> options = new HashSet<>();
+        options.add(Option.RETAIN_CLASS_REFERENCE);
+        StackWalker walker = StackWalker.getInstance(options);
+        return walker.walk((Stream<StackFrame> s) ->
+            s.dropWhile(f -> f.getClassName().equals(Authorization.class.getName()))
+             .dropWhile(f -> GUARDS.contains(f.getDeclaringClass())) // REMIND: Agents?
+             .allMatch((StackFrame t) -> {
+                ClassLoader loader = t.getDeclaringClass().getClassLoader();
+                return loader == null || loader.equals(PLATFORM_LOADER);
+        }));
     }
     
     @Override
