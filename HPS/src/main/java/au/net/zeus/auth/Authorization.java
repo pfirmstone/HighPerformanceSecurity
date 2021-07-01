@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -84,10 +83,16 @@ public final class Authorization {
     private static final Guard GUARD_REGISTER_CHECK = 
         GuardBuilder.getInstance("RUNTIME").get("registerGuard", (String) null);
     
+    private static final Guard GUARD_AGENT_CHECK = 
+        GuardBuilder.getInstance("RUNTIME").get("registerAgent", (String) null);
+    
     private static final Guard GUARD_SUBJECT = 
         GuardBuilder.getInstance("AUTH").get("getSubjectFromAuthorization", null);
     
     private static final Set<Class<? extends Guard>> GUARDS = 
+            RC.set(Collections.newSetFromMap(new ConcurrentHashMap<>()), Ref.WEAK, 0);
+    
+    private static final Set<Class> AGENTS = 
             RC.set(Collections.newSetFromMap(new ConcurrentHashMap<>()), Ref.WEAK, 0);
     
     
@@ -311,6 +316,11 @@ public final class Authorization {
         GUARDS.add(guardClass);
     }
     
+    public static void registerAgent(Class cl){
+        GUARD_AGENT_CHECK.checkGuard(cl);
+        AGENTS.add(cl);
+    }
+    
     private final Set<ProtectionDomain> context;
     private final Subject subject;
     private final int hashCode;
@@ -374,7 +384,8 @@ public final class Authorization {
         StackWalker walker = StackWalker.getInstance(options);
         return walker.walk((Stream<StackFrame> s) ->
             s.dropWhile(f -> f.getClassName().equals(Authorization.class.getName()))
-             .dropWhile(f -> GUARDS.contains(f.getDeclaringClass())) // REMIND: Agents?
+             .dropWhile(f -> GUARDS.contains(f.getDeclaringClass()))
+             .dropWhile(f -> AGENTS.contains(f.getDeclaringClass()))
              .allMatch((StackFrame t) -> {
                 ClassLoader loader = t.getDeclaringClass().getClassLoader();
                 return loader == null || loader.equals(PLATFORM_LOADER);
