@@ -18,6 +18,7 @@
 
 package au.net.zeus.hps;
 
+import java.security.Permission;
 import java.security.ProtectionDomain;
 import java.util.List;
 
@@ -67,4 +68,23 @@ public interface ScalableNestedPolicy {
      */
     public List<PermissionGrant> getPermissionGrants(
                                                 ProtectionDomain domain);
+    
+    /**
+     * Evaluates the policy for the permissions granted to
+     * the ProtectionDomain and tests whether the permission is
+     * granted.
+     * 
+     * @param domain ProtectionDomain to be tested.
+     * @param permission Permission the domain will be tested for.
+     * @return true if this policy has granted the domain the permission.
+     */
+    public default boolean implies(ProtectionDomain domain, Permission permission)
+    {
+        return true;
+    }
+    
+    /**
+     * Refreshes the policy configuration.
+     */
+    public default void refresh(){}
 }

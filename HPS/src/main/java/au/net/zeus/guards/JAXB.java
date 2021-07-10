@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package au.net.zeus.auth;
+package au.net.zeus.guards;
+
+import java.security.Permission;
 
 /**
- *
  * @author peter
  */
-public class GuardBuilderSpi {
-    
+public class JAXB extends AbstractGuards {
+
+    public JAXB() throws NoSuchMethodException, ClassNotFoundException {
+        super((Class<? extends Permission>) Class.forName("javax.xml.bind.JAXBPermission"));
+    }
 }

@@ -13,22 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package au.net.zeus.auth;
+package au.net.zeus.guards;
 
-import java.security.Guard;
+import java.security.Permission;
 
 /**
- *
  * @author peter
  */
-public class GuardBuilder {
+public class TLS extends AbstractGuards {
 
-    static GuardBuilder getInstance(String runtime) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public TLS() throws NoSuchMethodException, ClassNotFoundException {
+        super((Class<? extends Permission>) Class.forName("javax.net.ssl.SSLPermission"));
     }
-
-    Guard get(String registerGuard, String string) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-    
 }

@@ -51,11 +51,20 @@ import org.apache.river.concurrent.Ref;
  * Authorization context, used for Authorization decisions by Guard 
  * implementations.  Provides static utility methods to make privilgedCall's
  * and record the current context.
- * 
+ * <p>
  * Any methods belonging to Classes loaded by the bootstrap, or Platform 
- * ClassLoader's are considered privileged calls. Guard implementations
- * determine privileges.  Any other method call is considered unprivileged
- * unless preceded by a privilegedCall method.
+ * ClassLoader's are considered privileged calls, when the stack doesn't contain
+ * application method calls. Guard implementations
+ * determine privileges. 
+ * <p>
+ * A method call is considered unprivileged
+ * unless preceded by a privilegedCall method, with the following exception;
+ * if all method calls
+ * on the stack belong to classes that can be resolved by the Platform
+ * ClassLoader, and are either class belonging to a registered Guard, 
+ * or Agent then that stack is considered
+ * to be a privileged call, in the absence of a privilegedCall method on the
+ * stack.
  * 
  * @author peter
  */
@@ -81,13 +90,13 @@ public final class Authorization {
             = new ThreadLocal();
     
     private static final Guard GUARD_REGISTER_CHECK = 
-        GuardBuilder.getInstance("RUNTIME").get("registerGuard", (String) null);
+        Guards.unit("RUNTIME").post("registerGuard");
     
     private static final Guard GUARD_AGENT_CHECK = 
-        GuardBuilder.getInstance("RUNTIME").get("registerAgent", (String) null);
+        Guards.unit("RUNTIME").post("registerAgent");
     
     private static final Guard GUARD_SUBJECT = 
-        GuardBuilder.getInstance("AUTH").get("getSubjectFromAuthorization", null);
+        Guards.unit("AUTH").post("getSubjectFromAuthorization");
     
     private static final Set<Class<? extends Guard>> GUARDS = 
             RC.set(Collections.newSetFromMap(new ConcurrentHashMap<>()), Ref.WEAK, 0);
@@ -302,11 +311,13 @@ public final class Authorization {
     }
     
     /**
-     * Register the calling Class type for a Guard implementation.
+     * Register the calling Class type for a Guard implementation. Guards
+     * are required to register to ensure they are considered privileged 
+     * platform domains.
      * 
      * Prior to calling {@link Authorization#checkEach(java.util.function.Consumer) 
      * a guard must register, this should be during initialization the ProtectionDomain
-     * of the guard will be checked.  This should occur prior to 
+     * of the guard will be checked. 
      * 
      * 
      * @param guardClass 
@@ -316,6 +327,12 @@ public final class Authorization {
         GUARDS.add(guardClass);
     }
     
+    /**
+     * Registers the calling class of an Agent.  Agents are required to register
+     * to ensure they are considered privlieged platform domains.
+     * 
+     * @param cl 
+     */
     public static void registerAgent(Class cl){
         GUARD_AGENT_CHECK.checkGuard(cl);
         AGENTS.add(cl);
@@ -481,6 +498,16 @@ public final class Authorization {
         @Override
         public int hashCode() {
             return hashCode;
+        }
+        
+        @Override
+        public String toString(){
+            StringBuilder sb = new StringBuilder();
+            sb.append("CodeSource: ").append(Objects.toString(getCodeSource())).append('\n')
+              .append("Principal[]'s: ").append(Arrays.toString(princiPals)).append('\n')
+              .append("ClassLoader: ").append(Objects.toString(getClassLoader())).append('\n')
+              .append("PermissionCollection: ").append(Objects.toString(getPermissions())).append('\n');
+            return sb.toString();
         }
         
     }
