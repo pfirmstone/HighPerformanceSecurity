@@ -8,7 +8,7 @@ Note the code in packages au.net.zeus.hps and au.net.zeus.thread are taken from 
             <version>${project.version}</version>
         </dependency>
 
-Code is package au.net.zeus.auth is intended to communicate concepts around a new authorization layer, post Java 17.  The package au.net.zeus.guards provides Guards implementations for existing JDK Permission classes.  An agents package will be provided in the near future, for instrumenting the JVM with Guard check points.
+Code in package au.net.zeus.auth is intended to communicate concepts around a new authorization layer, post Java 17.  The package au.net.zeus.guards provides Guards implementations for existing JDK Permission classes.  An agents package will be provided in the near future, for instrumenting the JVM with Guard check points.
 
 Test cases will be developed with Agent implementations.
 
