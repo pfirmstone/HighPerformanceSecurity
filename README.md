@@ -1,6 +1,6 @@
 # HighPerformanceSecurity
 
-Note the code in package au.net.zeus.hps is taken from JGDMS to demonstrate the security technologies utilised by that project, so they are more readable and understandable.  This is not intended for production as test code hasn't been copied across.  If you want to use these libraries they can be found on Maven Central by adding the following dependency:
+Note the code in packages au.net.zeus.hps and au.net.zeus.thread are taken from JGDMS to demonstrate the security technologies utilised by that project, so they are more readable and understandable.  This is not intended for production as test code hasn't been copied across.  If you want to use these libraries they can be found on Maven Central by adding the following dependency:
 
         <dependency>
             <groupId>au.net.zeus.jgdms</groupId>
