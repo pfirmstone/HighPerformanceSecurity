@@ -97,6 +97,9 @@ public final class Authorization {
     
     private static final Guard GUARD_SUBJECT = 
         Guards.unit("AUTH").post("getSubjectFromAuthorization");
+     
+    private static Guard GUARD_PRIVILEGED_CHECK =
+        Guards.unit("RUNTIME").post("registerPrivileged");
     
     private static final Set<Class<? extends Guard>> GUARDS = 
             RC.set(Collections.newSetFromMap(new ConcurrentHashMap<>()), Ref.WEAK, 0);
@@ -104,6 +107,12 @@ public final class Authorization {
     private static final Set<Class> AGENTS = 
             RC.set(Collections.newSetFromMap(new ConcurrentHashMap<>()), Ref.WEAK, 0);
     
+    private static final Set<ProtectionDomain> PRIVILEGED_DOMAINS = 
+            RC.set(Collections.newSetFromMap(new ConcurrentHashMap<>()), Ref.WEAK, 0);
+    
+    static {
+        PRIVILEGED_DOMAINS.add(MY_DOMAIN);
+    }
     
     
     /**
@@ -338,6 +347,42 @@ public final class Authorization {
         AGENTS.add(cl);
     }
     
+    /**
+     * This method allows a developer to register the domain of a
+     * dependency which doesn't utilize this Authorization layer, to be
+     * considered as a trusted platform  layer, in doing so however,
+     * the dependency should be audited for vulnerabilities and instrumented
+     * with guards if necessary.
+     * 
+     * The intent of this method, is to allow guards to check the domains
+     * on a thread call stack which hasn't originated from a privileged call,
+     * the privileges of the domain are still checked, however it is preferable
+     * for privileged calls to wrap and encapsulate dependency code if possible. 
+     * In the event that dependency code creates its own worker threads internally
+     * which require privileges, this method allows those privileges to be checked, 
+     * rather than immediately rejected.
+     * 
+     * However dependency code is unlikely to discriminate between calling code
+     * and as such may allow other code to call it also, which may open
+     * authorization security vulnerabilities.  In this case, the developer
+     * may request the dependency code developers to add support, or may instrument the
+     * dependency code with guard checks using the Attach API.   
+     * Alternatively a developer may wish to use module or ClassLoader visibility, 
+     * to isolate the dependency code.
+     * 
+     * @param cl a class belonging to the privileged domain.
+     */
+    public static void registerPrivileged(Class cl){
+        GUARD_PRIVILEGED_CHECK.checkGuard(cl);
+        Authorization authorization = INHERITED_CONTEXT.get();
+        try {
+            INHERITED_CONTEXT.set(PRIVILEGED);
+            PRIVILEGED_DOMAINS.add(cl.getProtectionDomain());
+        } finally {
+            INHERITED_CONTEXT.set(authorization);
+        }
+    }
+    
     private final Set<ProtectionDomain> context;
     private final Subject subject;
     private final int hashCode;
@@ -372,9 +417,10 @@ public final class Authorization {
         if (PRIVILEGED.equals(authorization)) return; // Avoids circular checks.
         try {
             INHERITED_CONTEXT.set(PRIVILEGED);
-            if (UNPRIVILEGED.equals(authorization) && !onlyJavaPlatform()){
+            if (UNPRIVILEGED.equals(authorization) && !onlyPrivileged()){
                 throw new AuthorizationException("A privilegedCall is required to enable privileges.");
             }
+            // Check the caller is a registered Guard.
             Set<Option> options = new HashSet<>();
             options.add(Option.RETAIN_CLASS_REFERENCE);
             StackWalker walker = StackWalker.getInstance(options);
@@ -388,24 +434,26 @@ public final class Authorization {
                     throw new AuthorizationException("Guard not registered: " + cl.getCanonicalName());
                 }
             });
+            // The actual check for privileged code, treat guard as privileged to avoid circular checks.
+            context.stream().forEach(consumer);
         } finally {
             INHERITED_CONTEXT.set(authorization);
         }
-        // The actual check for privileged code.
-        context.stream().forEach(consumer);
     }
     
-    private Boolean onlyJavaPlatform(){
+    private Boolean onlyPrivileged(){
         Set<Option> options = new HashSet<>();
         options.add(Option.RETAIN_CLASS_REFERENCE);
         StackWalker walker = StackWalker.getInstance(options);
         return walker.walk((Stream<StackFrame> s) ->
             s.dropWhile(f -> f.getClassName().equals(Authorization.class.getName()))
-             .dropWhile(f -> GUARDS.contains(f.getDeclaringClass()))
-             .dropWhile(f -> AGENTS.contains(f.getDeclaringClass()))
              .allMatch((StackFrame t) -> {
-                ClassLoader loader = t.getDeclaringClass().getClassLoader();
-                return loader == null || loader.equals(PLATFORM_LOADER);
+                Class c = t.getDeclaringClass();
+                if (GUARDS.contains(c) || AGENTS.contains(c)) return true;
+                ClassLoader loader = c.getClassLoader();
+                if  (loader == null || loader.equals(PLATFORM_LOADER)) return true;
+                ProtectionDomain p = c.getProtectionDomain();
+                return PRIVILEGED_DOMAINS.contains(p);
         }));
     }
     
