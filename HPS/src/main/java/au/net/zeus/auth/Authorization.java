@@ -62,9 +62,14 @@ import org.apache.river.concurrent.Ref;
  * if all method calls
  * on the stack belong to classes that can be resolved by the Platform
  * ClassLoader, and are either class belonging to a registered Guard, 
- * or Agent then that stack is considered
+ * or Agent, or privileged domain, then that stack is considered
  * to be a privileged call, in the absence of a privilegedCall method on the
  * stack.
+ * <p>
+ * The reason a thread stack is considered unprivileged, until a
+ * privileged call is made, is to both prevent viral permissions, and
+ * because the stack of the thread that created the current thread, is unknown
+ * and cannot be checked.
  * 
  * @author peter
  */
@@ -350,25 +355,33 @@ public final class Authorization {
     /**
      * This method allows a developer to register the domain of a
      * dependency which doesn't utilize this Authorization layer, to be
-     * considered as a trusted platform  layer, in doing so however,
+     * considered as a trusted platform layer, in doing so however,
      * the dependency should be audited for vulnerabilities and instrumented
      * with guards if necessary.
      * 
-     * The intent of this method, is to allow guards to check the domains
-     * on a thread call stack which hasn't originated from a privileged call,
-     * the privileges of the domain are still checked, however it is preferable
-     * for privileged calls to wrap and encapsulate dependency code if possible. 
-     * In the event that dependency code creates its own worker threads internally
-     * which require privileges, this method allows those privileges to be checked, 
-     * rather than immediately rejected.
+     * It is preferable for privileged calls to wrap and encapsulate
+     * dependency code if possible, rather than use this method.
      * 
-     * However dependency code is unlikely to discriminate between calling code
-     * and as such may allow other code to call it also, which may open
-     * authorization security vulnerabilities.  In this case, the developer
-     * may request the dependency code developers to add support, or may instrument the
-     * dependency code with guard checks using the Attach API.   
+     * This method is provided to allow dependency code that creates worker threads internally
+     * which require privileges, this method allows privileges to be checked
+     * for those worker threads without needing to make a privileged call.
+     * 
+     * However dependency code may allow privileged information to escape 
+     * to other threads, which may open authorization security vulnerabilities.  
+     * In this case, the developer may wish to request dependency code
+     * developers to add support, or instrument the
+     * dependency code with guard checks using the Attach API, to guard access
+     * to privileged information.
+     * 
      * Alternatively a developer may wish to use module or ClassLoader visibility, 
-     * to isolate the dependency code.
+     * to isolate the dependency code, to prevent privileged information escaping.
+     * 
+     * Note that this method doesn't grant privileges,
+     * it only allows privileges to be granted without the need to make
+     * a privileged call, provided the thread call stack only contains
+     * privileged domains.  Note that if the thread call stack contains
+     * any unprivileged domains, the privilege check will be immediately
+     * rejected without consulting guards.
      * 
      * @param cl a class belonging to the privileged domain.
      */
@@ -417,7 +430,7 @@ public final class Authorization {
         if (PRIVILEGED.equals(authorization)) return; // Avoids circular checks.
         try {
             INHERITED_CONTEXT.set(PRIVILEGED);
-            if (UNPRIVILEGED.equals(authorization) && !onlyPrivileged()){
+            if (UNPRIVILEGED.equals(authorization) && !privileged()){
                 throw new AuthorizationException("A privilegedCall is required to enable privileges.");
             }
             // Check the caller is a registered Guard.
@@ -441,7 +454,7 @@ public final class Authorization {
         }
     }
     
-    private Boolean onlyPrivileged(){
+    private Boolean privileged(){
         Set<Option> options = new HashSet<>();
         options.add(Option.RETAIN_CLASS_REFERENCE);
         StackWalker walker = StackWalker.getInstance(options);
@@ -449,9 +462,9 @@ public final class Authorization {
             s.dropWhile(f -> f.getClassName().equals(Authorization.class.getName()))
              .allMatch((StackFrame t) -> {
                 Class c = t.getDeclaringClass();
-                if (GUARDS.contains(c) || AGENTS.contains(c)) return true;
                 ClassLoader loader = c.getClassLoader();
                 if  (loader == null || loader.equals(PLATFORM_LOADER)) return true;
+                if (GUARDS.contains(c) || AGENTS.contains(c)) return true;
                 ProtectionDomain p = c.getProtectionDomain();
                 return PRIVILEGED_DOMAINS.contains(p);
         }));
