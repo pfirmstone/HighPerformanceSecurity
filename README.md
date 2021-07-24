@@ -1,4 +1,15 @@
 # HighPerformanceSecurity
+## Unfortunate news regarding Java library support authorization
+
+Java libraries will not allow check points for an authorization framework.   The suggested use of Agents by OpenJDK to insert these check points after investigation is proving brittle and impractical.
+
+We need to find another platform library, in another programming language, preferably something modern, that will allow hooks for access checks to be added to the standard library to control IO, network, file access, etc.
+
+JEP 411 is the beginning of all code is trusted for the Java platform, unfortunately Java has been designed around authroization access control.
+
+It is time to start migrating off Java.
+
+## Previously:
 
 Note the code in packages au.net.zeus.hps and au.net.zeus.thread are taken from JGDMS to demonstrate the security technologies utilised by that project, so they are more readable and understandable.  This is not intended for production as test code hasn't been copied across.  If you want to use these libraries they can be found on Maven Central by adding the following dependency:
 
