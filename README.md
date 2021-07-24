@@ -1,5 +1,5 @@
 # HighPerformanceSecurity
-## Unfortunate news regarding Java library support authorization
+## Unfortunate news regarding Java library support for authorization hooks
 
 Java libraries will not allow check points for an authorization framework.   The suggested use of Agents by OpenJDK to insert these check points after investigation is proving brittle and impractical.
 
