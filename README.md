@@ -1,4 +1,10 @@
 # HighPerformanceSecurity
+## Some good news
+
+OpenJDK appears to be softening on adding *Some* hooks, so we need to focus on the hooks that cannot be easily implemented by Agent's.
+
+The guard providers that replicate Java permissions are not all likely to be supported, and the existing check points may be unsuitable for replication, such that the old set of permissions implementations provided by the Java platform are unlikely to be suitable.
+
 ## Unfortunate news regarding Java library support for authorization hooks
 
 Java libraries will not allow check points for an authorization framework.   The suggested use of Agents by OpenJDK to insert these check points after investigation is proving brittle and impractical.
