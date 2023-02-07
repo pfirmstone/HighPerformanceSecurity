@@ -3,7 +3,7 @@
 
 OpenJDK appears to be softening on adding *Some* hooks, so we need to focus on the hooks that cannot be easily implemented by Agent's.  This has been retracted.
 
-OpenJDK appears open to giving meaninful URL's to Java's CodeSource in ProtectionDomain's, which would allow us to reduce the size of Java's trusted computing base.
+OpenJDK appears open to giving meaningful jrt:// URL's to Java's system module CodeSource's in ProtectionDomain's, which would allow us to reduce the size of Java's trusted computing base.
 
 The guard providers that replicate Java permissions are not all likely to be supported, and the existing check points may be unsuitable for replication, such that the old set of permissions implementations provided by the Java platform are unlikely to be suitable.
 
