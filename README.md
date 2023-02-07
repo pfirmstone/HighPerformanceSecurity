@@ -1,17 +1,15 @@
 # HighPerformanceSecurity
 ## Some good news
 
-OpenJDK appears to be softening on adding *Some* hooks, so we need to focus on the hooks that cannot be easily implemented by Agent's.
+OpenJDK appears to be softening on adding *Some* hooks, so we need to focus on the hooks that cannot be easily implemented by Agent's.  This has been retracted.
+
+OpenJDK appears open to giving meaninful URL's to Java's CodeSource in ProtectionDomain's, which would allow us to reduce the size of Java's trusted computing base.
 
 The guard providers that replicate Java permissions are not all likely to be supported, and the existing check points may be unsuitable for replication, such that the old set of permissions implementations provided by the Java platform are unlikely to be suitable.
 
 ## Unfortunate news regarding Java library support for authorization hooks
 
-Java libraries will not allow check points for an authorization framework.   The suggested use of Agents by OpenJDK to insert these check points after investigation is proving brittle and impractical.
-
-We need to find another platform library, in another programming language, preferably something modern, that will allow hooks for access checks to be added to the standard library to control IO, network, file access, etc.
-
-JEP 411 is the beginning of all code is trusted for the Java platform, unfortunately Java has been designed around authroization access control.
+Java libraries will not allow check points for an authorization framework.   The suggested use of Agents by OpenJDK to insert these check points after investigation is proving brittle and impractical.   - Update Java 18 onwards, allows finalizers to be disabled, this means that Agent check points will be viable, provided finalizers are disabled.
 
 ## Previously:
 
@@ -33,6 +31,6 @@ This prototype is intended to be extensible, to allow full customisation of Guar
 
 This prototype authorization layer framework is intended to only support Java LTS release versions, to minimise the security auditing work required to lock down the JVM.
 
-Unlike Java's AccessController, application code must make a privileged call in order to use privileged mode and that privileged call is only applicable to the running thread.  This decision was made, due to the inability of inheriting Thread context and in light of the difficulties tracking privileges accross executors.
+Unlike Java's AccessController, application code must make a privileged call in order to use privileged mode and that privileged call is only applicable to the running thread.  This decision was made, due to the inability of inheriting Thread context and in light of the difficulties tracking privileges accross executors.  - However this introduces a problem, while it prevents viral permissions, it prevents not specifically submitted to be allowed to be granted privileges from being granted any privileges at all.
 
 Library code that doesn't support this will need to be either wrapped, with privileged calls, or agents used to make certain calls privileged, for multi threaded applications.
