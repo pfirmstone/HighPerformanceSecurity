@@ -390,7 +390,7 @@ public final class Authorization {
      * 
      * @param cl a class belonging to the privileged domain.
      */
-    public static void privilegedAccessOn(Class cl){
+    public static void privilegesOn(Class cl){
         GUARD_PRIVILEGED_CHECK.checkGuard(cl);
         Authorization authorization = INHERITED_CONTEXT.get();
         try {
@@ -410,7 +410,7 @@ public final class Authorization {
      * 
      * @param cl 
      */
-    public static void privilegedAccessOff(Class cl){
+    public static void privilegesOff(Class cl){
         GUARD_PRIVILEGED_CHECK.checkGuard(cl);
         Authorization authorization = INHERITED_CONTEXT.get();
         try {
