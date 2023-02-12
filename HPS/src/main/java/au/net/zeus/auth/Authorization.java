@@ -19,6 +19,7 @@ import au.net.zeus.hps.Uri;
 import java.io.ObjectStreamException;
 import java.lang.StackWalker.Option;
 import java.lang.StackWalker.StackFrame;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -213,7 +214,12 @@ public final class Authorization {
         options.add(Option.RETAIN_CLASS_REFERENCE);
         StackWalker walker = StackWalker.getInstance(options);
         List<StackFrame> frames = walker.walk(s ->
-            s.dropWhile(f -> f.getClassName().equals(Authorization.class.getName()))
+            s.dropWhile( 
+                f -> ( // Be sure to skip reflection and any anonymous or lambda classes
+                    f.getClassName().startsWith(Authorization.class.getName())
+                 || f.getClassName().startsWith(Method.class.getName())
+                )
+            )
              .limit(1L) // Grab the caller who called privilegedCall.
              .collect(Collectors.toList()));
         Set<ProtectionDomain> domains = new HashSet<>();
@@ -463,7 +469,12 @@ public final class Authorization {
             options.add(Option.RETAIN_CLASS_REFERENCE);
             StackWalker walker = StackWalker.getInstance(options);
             List<StackFrame> frames = walker.walk(s ->
-                s.dropWhile(f -> f.getClassName().equals(Authorization.class.getName()))
+                s.dropWhile( 
+                    f -> ( // Be sure to skip reflection and any anonymous or lambda classes
+                        f.getClassName().startsWith(Authorization.class.getName())
+                     || f.getClassName().startsWith(Method.class.getName())
+                    )
+                )
                  .limit(1L) // Grab the caller who called privilegedCall.
                  .collect(Collectors.toList()));
             frames.stream().forEach((StackFrame t) -> {
