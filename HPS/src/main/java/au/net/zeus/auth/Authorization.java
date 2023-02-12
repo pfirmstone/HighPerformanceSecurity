@@ -15,6 +15,7 @@
  */
 package au.net.zeus.auth;
 
+import au.net.zeus.hps.Uri;
 import java.io.ObjectStreamException;
 import java.lang.StackWalker.Option;
 import java.lang.StackWalker.StackFrame;
@@ -42,7 +43,6 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.security.auth.Subject;
-import org.apache.river.api.net.Uri;
 import org.apache.river.concurrent.RC;
 import org.apache.river.concurrent.Ref;
 
@@ -147,6 +147,8 @@ public final class Authorization {
      * Elevates the privileges of the Callable to those granted to the Subject
      * and ProtectionDomain's of the Callable and it's call stack, including the
      * ProtectionDomain of the caller of this method.
+     * 
+     * This method should be used in preference to Subject.doAs methods.
      * 
      * @param <V>
      * @param subject
@@ -285,8 +287,8 @@ public final class Authorization {
             StackWalker walker = StackWalker.getInstance(options);
             List<StackFrame> frames = walker.walk(s -> 
                 s.skip(1) //Skips getAuthorization()
-                 .takeWhile(f -> !f.getClassName().equals(CallableWrapper.class.getName())))
-                 .collect(Collectors.toList());
+                 .takeWhile(f -> !f.getClassName().equals(CallableWrapper.class.getName()))
+                 .collect(Collectors.toList()));
             Set<ProtectionDomain> domains = new HashSet<>(frames.size());
             authorization.checkEach((ProtectionDomain t) -> {
                 if (MY_DOMAIN.equals(t)) return;
@@ -343,7 +345,7 @@ public final class Authorization {
     
     /**
      * Registers the calling class of an Agent.  Agents are required to register
-     * to ensure they are considered privlieged platform domains.
+     * to ensure they are considered privileged platform domains.
      * 
      * @param cl 
      */
@@ -360,16 +362,19 @@ public final class Authorization {
      * with guards if necessary.
      * 
      * It is preferable for privileged calls to wrap and encapsulate
-     * dependency code if possible, rather than use this method.
+     * dependency code if possible, rather than use this method.  However it is
+     * recognized, that if a library utilizes Executors to perform internal tasks
+     * that it will not have privileges enabled, hence the existence of this method.
      * 
      * This method is provided to allow dependency code that creates worker threads internally
      * which require privileges, this method allows privileges to be checked
-     * for those worker threads without needing to make a privileged call.
+     * threads without first needing to make a privileged call.
      * 
      * However dependency code may allow privileged information to escape 
-     * to other threads, which may open authorization security vulnerabilities.  
+     * to other threads, which may open authorization security vulnerabilities, 
+     * or allow gadget attacks, or privilege escalation.  
      * In this case, the developer may wish to request dependency code
-     * developers to add support, or instrument the
+     * developers to add support for this library, or instrument the
      * dependency code with guard checks using the Attach API, to guard access
      * to privileged information.
      * 
@@ -385,12 +390,32 @@ public final class Authorization {
      * 
      * @param cl a class belonging to the privileged domain.
      */
-    public static void registerPrivileged(Class cl){
+    public static void privilegedAccessOn(Class cl){
         GUARD_PRIVILEGED_CHECK.checkGuard(cl);
         Authorization authorization = INHERITED_CONTEXT.get();
         try {
             INHERITED_CONTEXT.set(PRIVILEGED);
             PRIVILEGED_DOMAINS.add(cl.getProtectionDomain());
+        } finally {
+            INHERITED_CONTEXT.set(authorization);
+        }
+    }
+    
+    /**
+     * Removes a Class's domain from running with privileged access.
+     *  
+     * A developer may temporarily activate a library or other component that
+     * doesn't support this Authorization framework, to allow it to use
+     * privileges and later have them removed.
+     * 
+     * @param cl 
+     */
+    public static void privilegedAccessOff(Class cl){
+        GUARD_PRIVILEGED_CHECK.checkGuard(cl);
+        Authorization authorization = INHERITED_CONTEXT.get();
+        try {
+            INHERITED_CONTEXT.set(PRIVILEGED);
+            PRIVILEGED_DOMAINS.remove(cl.getProtectionDomain());
         } finally {
             INHERITED_CONTEXT.set(authorization);
         }

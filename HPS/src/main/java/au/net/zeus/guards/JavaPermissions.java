@@ -23,6 +23,7 @@ import java.security.Provider;
  */
 public class JavaPermissions extends Provider {
     
+    @SuppressWarnings("removal")
     private static boolean checkSecurityManager(){
         if (System.getSecurityManager() != null) throw new
             IllegalStateException("SecurityManager is not allowed to be set");
