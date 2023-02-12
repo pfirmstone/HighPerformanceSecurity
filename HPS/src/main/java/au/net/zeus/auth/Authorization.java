@@ -372,13 +372,14 @@ public final class Authorization {
      * recognized, that if a library utilizes Executors to perform internal tasks
      * that it will not have privileges enabled, hence the existence of this method.
      * 
-     * This method is provided to allow dependency code that creates worker threads internally
-     * which require privileges, this method allows privileges to be checked
-     * threads without first needing to make a privileged call.
+     * This method is provided to allow dependency code that creates worker 
+     * threads internally which require privileges, this method allows
+     * privileges to be checked in thread call stacks that don't contain a 
+     * privileged call.
      * 
-     * However dependency code may allow privileged information to escape 
-     * to other threads, which may open authorization security vulnerabilities, 
-     * or allow gadget attacks, or privilege escalation.  
+     * Beware of dependency code, that may allow privileged information to escape 
+     * to other threads, opening authorization security vulnerabilities, 
+     * gadget attacks, or privilege escalation.  
      * In this case, the developer may wish to request dependency code
      * developers to add support for this library, or instrument the
      * dependency code with guard checks using the Attach API, to guard access
