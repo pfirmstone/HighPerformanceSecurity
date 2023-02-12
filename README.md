@@ -35,7 +35,7 @@ Unlike Java's AccessController, application code must make a privileged call in 
 
 Library code that doesn't support this will need to be either wrapped, with privileged calls, or agents used to make certain calls privileged, for multi threaded applications.
 
-## Why we can't just reimpliment the existing AccessController and AccessControlContext model
+## Why we can't just reimpliment the existing AccessController and AccessControlContext model?
 
 In Java's existing Authorization framework, when Thread's are created, they record the AccessControlContext of the thread that called their constructor.  This allows the AccessController to track the call context back to the originating thread, to capture all domains, that may be involved.  One flaw in this approach, is that of Runnable and Callable tasks, they too should have recorded their context during creation, however as they are interfaces and not abstract classes, they cannot.
 
