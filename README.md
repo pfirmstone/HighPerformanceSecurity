@@ -31,7 +31,7 @@ This prototype is intended to be extensible, to allow full customisation of Guar
 
 This prototype authorization layer framework is intended to only support Java LTS release versions, to minimise the security auditing work required to lock down the JVM.
 
-Unlike Java's AccessController, application code must make a privileged call in order to use privileged mode and that privileged call is only applicable to the running thread.  This decision was made, due to the inability of inheriting Thread context and in light of the difficulties tracking privileges accross executors.  - However this introduces a problem, while it prevents viral permissions, it prevents domains that not specifically nominated to be given Authorization from being granted any privileges at all.
+Unlike Java's AccessController, application code must make a privileged call in order to use privileged mode and that privileged call is only applicable to the running thread.  This decision was made, due to the inability of inheriting Thread context and in light of the difficulties tracking privileges accross executors.  - However this introduces a problem, while it prevents viral permissions, it prevents domains not specifically nominated to be given Authorization from being granted any privileges at all.
 
 Library code that doesn't support this will need to be either wrapped, with privileged calls, or agents used to make certain calls privileged, for multi threaded applications.
 
