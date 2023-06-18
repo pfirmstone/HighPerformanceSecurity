@@ -46,3 +46,9 @@ We are unable to replicate recording of a Thread's inherited context, for this r
 It is extremely important that privilges are only used when needed, the developer can indicate their desire to use privileges, by making a privileged call.  If the developer hasn't made a privileged call, then an attacker using a gadget, cannot use their privileges, neither can an admistrator grant AllPermission.  Granting of AllPermission is a broken shortcut, to cover the deficit of tooling provided for policy file management.  The developer can constrain the use of privileges to a small section of code, that's relatively easy to audit.  This is in stark contrast to Java's original privilege model, where the developer has to understand how to create an unprivileged AccessControlContext and make an AccessController::doPrivileged call with it.
 
 Because we don't generally grant privileges outside of privileged calls, it reduces the size of the code that needs auditing.
+## Update 19/06/2023
+OpenJDK has confirmed it will be removing PrivilegedActions and PrivilegedExceptionActions.
+
+Without lower level support from OpenJDK, it's not practical to implement an authorization layer.
+
+For security reasons, I personally won't be using any version of Java that doesn't support an authorization layer.
